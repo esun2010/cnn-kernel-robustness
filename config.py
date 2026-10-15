@@ -1,0 +1,11 @@
+IMAGE_RESOLUTION = 64 #28, 64, 128, or 224
+LEARNING_RATE = 0.001
+BATCH_SIZE = 64
+EPOCHS = 20
+
+KERNEL_SIZES = [3,5,7] #Must be odd integers
+GAUSSIAN_BLUR_SIGMA = [0, 0.5, 1, 1.5]
+
+#Visual parameters
+DISPLAY_INFO = True
+SHOW_PROGRESS_BAR = True
