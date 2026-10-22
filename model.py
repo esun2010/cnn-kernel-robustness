@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
 import medmnist
 from medmnist import INFO
@@ -76,7 +77,7 @@ class CNN(nn.Module):
         x = self.fc(x)
         return x
 
-def get_data_loader(split, size=IMAGE_RESOLUTION, transform = None):
+def get_data_loader(split, size=IMAGE_RESOLUTION, blur = False, sigma=float(0)):
     info = misc_info(display = False)
     DataClass = getattr(medmnist, info['python_class'])
     if split == 0:
@@ -85,6 +86,19 @@ def get_data_loader(split, size=IMAGE_RESOLUTION, transform = None):
         split = "val"
     elif split == 2:
         split = "test"
+    if blur:
+        transform_cmds = nn.Sequential(
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[.5], std=[.5]),
+            transforms.GaussianBlur({2*sigma+1},sigma)
+        )
+        transform = torch.jit.script(transform_cmds)
+    else:
+        transform_cmds = nn.Sequential(
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[.5], std=[.5])
+        )
+        transform = torch.jit.script(transform_cmds)
     data = DataClass(split=split, transform=transform, download=True, size=size, mmap_mode="r")
     return DataLoader(data, batch_size=BATCH_SIZE, shuffle=True, num_workers=4, pin_memory=True)
 
