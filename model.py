@@ -7,16 +7,17 @@ import medmnist
 from medmnist import INFO
 
 import tqdm
+import math
 
 from config import BATCH_SIZE, DISPLAY_INFO, IMAGE_RESOLUTION
 
 #miscellaneous information about the dataset
 def misc_info(display = DISPLAY_INFO):
+    info = INFO["pathmnist"]
     if display:
         print("Version:" + torch.__version__)
         print("CUDA Available: " + str(torch.cuda.is_available()))
 
-        info = INFO["pathmnist"]
         task = info['task']
         n_channels = info['n_channels']
         n_classes = len(info['label'])
@@ -87,18 +88,18 @@ def get_data_loader(split, size=IMAGE_RESOLUTION, blur = False, sigma=float(0)):
     elif split == 2:
         split = "test"
     if blur:
-        transform_cmds = nn.Sequential(
+        transform_cmds = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize(mean=[.5], std=[.5]),
-            transforms.GaussianBlur({2*sigma+1},sigma)
-        )
-        transform = torch.jit.script(transform_cmds)
+            transforms.GaussianBlur(2*math.ceil(3*sigma)+1, sigma),
+            transforms.Normalize(mean=[.5], std=[.5])
+        ])
+        transform = transform_cmds
     else:
-        transform_cmds = nn.Sequential(
+        transform_cmds = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=[.5], std=[.5])
-        )
-        transform = torch.jit.script(transform_cmds)
+        ])
+        transform = transform_cmds
     data = DataClass(split=split, transform=transform, download=True, size=size, mmap_mode="r")
     return DataLoader(data, batch_size=BATCH_SIZE, shuffle=True, num_workers=4, pin_memory=True)
 
