@@ -7,5 +7,5 @@ KERNEL_SIZES = [3,5,7] #Must be odd integers
 GAUSSIAN_BLUR_SIGMA = [0, 0.5, 1, 1.5]
 
 #Visual parameters
-DISPLAY_INFO = True
-SHOW_PROGRESS_BAR = True
+DISPLAY_INFO = True #display miscellaneous information about the dataset and model
+SHOW_PROGRESS_BAR = True #shows progress bars during training and evaluation

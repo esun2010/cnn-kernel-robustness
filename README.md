@@ -2,5 +2,4 @@
 
 To-do:
 Training + testing
-    saving files
-    select best validation performance
+    implement train+validation functions with tdqm
