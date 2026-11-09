@@ -13,6 +13,7 @@ from config import SUPPORTED_KERNEL_SIZES, LEARNING_RATE, EPOCHS, SHOW_PROGRESS_
 #misc imports
 import time
 import os
+import tqdm
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
@@ -78,12 +79,49 @@ for blur_sigma in GAUSSIAN_BLUR_SIGMA:
                     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
                 for t in range(epoch_num, EPOCHS+1):
                     start_time = time.perf_counter()
-
-                    #implement training and evaluation functions
                     train_accuracy = 0.0
                     val_accuracy = 0.0
                     test_accuracy = 0.0
+                    if SHOW_PROGRESS_BAR:
+                        train_loader = tqdm(train_loader, desc="Training")
+                        val_loader = tqdm(val_loader, desc="Validation")
+                        test_loader = tqdm(test_loader, desc="Testing")
+
+                    #Training loop
+                    model.train()
+                    for batch in train_loader:
+                        inputs, labels = batch
+                        inputs, labels = inputs.to(device), labels.to(device)
+                        optimizer.zero_grad()
+                        outputs = model(inputs)
+                        loss = loss_fn(outputs, labels)
+                        loss.backward()
+                        optimizer.step()
+                        _, predicted = torch.max(outputs.data, 1)
+                        train_accuracy += (predicted == labels).sum().item()
+                    train_accuracy = 100 * train_accuracy / len(train_loader.dataset)
                     
+                    #Validation loop
+                    model.eval()
+                    with torch.no_grad():
+                        for batch in val_loader:
+                            inputs, labels = batch
+                            inputs, labels = inputs.to(device), labels.to(device)
+                            outputs = model(inputs)
+                            _, predicted = torch.max(outputs.data, 1)
+                            val_accuracy += (predicted == labels).sum().item()
+                    val_accuracy = 100 * val_accuracy / len(val_loader.dataset)
+
+                    # Test loop
+                    with torch.no_grad():
+                        for batch in test_loader:
+                            inputs, labels = batch
+                            inputs, labels = inputs.to(device), labels.to(device)
+                            outputs = model(inputs)
+                            _, predicted = torch.max(outputs.data, 1)
+                            test_accuracy += (predicted == labels).sum().item()
+                    test_accuracy = 100 * test_accuracy / len(test_loader.dataset)
+
                     epoch_time = time.perf_counter() - start_time
                     print(f"Epoch {t} || Train Accuracy: {train_accuracy:.2f}%, Val Accuracy: {val_accuracy:.2f}%, Test Accuracy: {test_accuracy:.2f}%, Time: {epoch_time:.2f}s")
                     
