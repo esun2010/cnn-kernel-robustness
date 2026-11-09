@@ -41,25 +41,25 @@ class CNN(nn.Module):
             nn.Conv2d(in_channels, 32, kernel_size=kernel_sizes[0], stride=1, padding=padding[0]),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.Conv2d(in_channels, 32, kernel_size=kernel_sizes[0], stride=1, padding=padding[0]),
+            nn.Conv2d(32, 32, kernel_size=kernel_sizes[0], stride=1, padding=padding[0]),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2)
         )
         self.Layer2 = nn.Sequential(
-            nn.Conv2d(in_channels, 32, kernel_size=kernel_sizes[1], stride=1, padding=padding[1]),
+            nn.Conv2d(32, 32, kernel_size=kernel_sizes[1], stride=1, padding=padding[1]),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.Conv2d(in_channels, 32, kernel_size=kernel_sizes[1], stride=1, padding=padding[1]),
+            nn.Conv2d(32, 32, kernel_size=kernel_sizes[1], stride=1, padding=padding[1]),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2)
         )
         self.Layer3 = nn.Sequential(
-            nn.Conv2d(in_channels, 32, kernel_size=kernel_sizes[2], stride=1, padding=padding[2]),
+            nn.Conv2d(32, 32, kernel_size=kernel_sizes[2], stride=1, padding=padding[2]),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.Conv2d(in_channels, 32, kernel_size=kernel_sizes[2], stride=1, padding=padding[2]),
+            nn.Conv2d(32, 32, kernel_size=kernel_sizes[2], stride=1, padding=padding[2]),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.AdaptiveAvgPool2d((1, 1))
@@ -101,5 +101,5 @@ def get_data_loader(split, size=IMAGE_RESOLUTION, blur = False, sigma=float(0)):
         ])
         transform = transform_cmds
     data = DataClass(split=split, transform=transform, download=True, size=size, mmap_mode="r")
-    return DataLoader(data, batch_size=BATCH_SIZE, shuffle=True, num_workers=4, pin_memory=True)
+    return DataLoader(data, batch_size=BATCH_SIZE, shuffle=True, num_workers=0, pin_memory=True)
 

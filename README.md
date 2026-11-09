@@ -1,5 +1,6 @@
 # cnn-kernel-robustness
 
 To-do:
-Training + testing
-    implement train+validation functions with tdqm
+Debugging:
+    validation accuracies and testing accuracies
+    skipping models skips incorrectly
