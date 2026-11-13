@@ -6,7 +6,6 @@ from torchvision import transforms
 import medmnist
 from medmnist import INFO
 
-import tqdm
 import math
 
 from config import BATCH_SIZE, DISPLAY_INFO, IMAGE_RESOLUTION

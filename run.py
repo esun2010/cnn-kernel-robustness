@@ -51,13 +51,14 @@ for blur_sigma in GAUSSIAN_BLUR_SIGMA:
                 checkpoint_file = os.path.join(folder_path, "model_checkpoint.pth")
                 start_epoch = 1
                 new_model = True
+                skip_model = False
                 
                 if os.path.exists(results_file) and os.path.exists(checkpoint_file):
                     checkpoint = torch.load(os.path.join(folder_path, "model_checkpoint.pth"), weights_only=True)
                     start_epoch = checkpoint['epoch'] + 1
                     if start_epoch >= EPOCHS:  
                         print(f"Skipping model B:{blur_sigma} K:({kernel_size_1},{kernel_size_2},{kernel_size_3})")
-                        break
+                        skip_model = True
                     else:
                         print(f"Skipping to epoch {start_epoch}")
                         new_model = False
@@ -67,97 +68,98 @@ for blur_sigma in GAUSSIAN_BLUR_SIGMA:
                         f.write(f"Blur sigma: {blur_sigma}\tKernel sizes: ({kernel_size_1}, {kernel_size_2}, {kernel_size_3})\n")
                         f.write(f"Epoch\tTrain Accuracy\tVal Accuracy\tTest Accuracy\tTime Took\n")
                 #endregion
-
-                #region training and evaluation
-                epoch_num = start_epoch
-                print(f"Model B:{blur_sigma} K:({kernel_size_1},{kernel_size_2},{kernel_size_3})-----------------")
-                model = CNN(kernel_sizes=[kernel_size_1, kernel_size_2, kernel_size_3]).to(device)
-                loss_fn = nn.CrossEntropyLoss()
-                optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
-                if not new_model:
-                    model.load_state_dict(checkpoint['model_state_dict'])
-                    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-                for t in range(epoch_num, EPOCHS+1):
-                    start_time = time.perf_counter()
-                    train_accuracy = 0.0
-                    val_accuracy = 0.0
-                    test_accuracy = 0.0
-                             
-                    #Training loop
-                    model.train()
-                    if SHOW_PROGRESS_BAR:
-                        for batch in tqdm(train_loader, desc="Training"):
-                            inputs, labels = batch
-                            inputs, labels = inputs.to(device), labels.to(device)
-                            labels = labels.squeeze(1)
-                            optimizer.zero_grad()
-                            outputs = model(inputs)
-                            loss = loss_fn(outputs, labels)
-                            loss.backward()
-                            optimizer.step()
-                            _, predicted = torch.max(outputs.data, 1)
-                            train_accuracy += (predicted == labels).sum().item()
-                    else:
-                        for batch in train_loader:
-                            inputs, labels = batch
-                            inputs, labels = inputs.to(device), labels.to(device)
-                            labels = labels.squeeze(1)
-                            optimizer.zero_grad()
-                            outputs = model(inputs)
-                            loss = loss_fn(outputs, labels)
-                            loss.backward()
-                            optimizer.step()
-                            _, predicted = torch.max(outputs.data, 1)
-                            train_accuracy += (predicted == labels).sum().item()
-                    train_accuracy = 100 * train_accuracy / len(train_loader.dataset)
-                    
-                    #Validation loop
-                    model.eval()
-                    with torch.no_grad():
+                if skip_model == False:
+                    #region training and evaluation
+                    epoch_num = start_epoch
+                    print(f"Model B:{blur_sigma} K:({kernel_size_1},{kernel_size_2},{kernel_size_3})-----------------")
+                    model = CNN(kernel_sizes=[kernel_size_1, kernel_size_2, kernel_size_3]).to(device)
+                    loss_fn = nn.CrossEntropyLoss()
+                    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+                    if not new_model:
+                        model.load_state_dict(checkpoint['model_state_dict'])
+                        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+                    for t in range(epoch_num, EPOCHS+1):
+                        start_time = time.perf_counter()
+                        train_accuracy = 0.0
+                        val_accuracy = 0.0
+                        test_accuracy = 0.0
+                                    
+                        #Training loop
+                        model.train()
                         if SHOW_PROGRESS_BAR:
-                            for batch in tqdm(val_loader, desc="Validating"):
+                            for batch in tqdm(train_loader, desc="Training"):
                                 inputs, labels = batch
                                 inputs, labels = inputs.to(device), labels.to(device)
+                                labels = labels.squeeze(1)
+                                optimizer.zero_grad()
                                 outputs = model(inputs)
+                                loss = loss_fn(outputs, labels)
+                                loss.backward()
+                                optimizer.step()
                                 _, predicted = torch.max(outputs.data, 1)
-                                val_accuracy += (predicted == labels).sum().item()
+                                train_accuracy += (predicted == labels).sum().item()
                         else:
-                            for batch in val_loader:
+                            for batch in train_loader:
                                 inputs, labels = batch
                                 inputs, labels = inputs.to(device), labels.to(device)
+                                labels = labels.squeeze(1)
+                                optimizer.zero_grad()
                                 outputs = model(inputs)
+                                loss = loss_fn(outputs, labels)
+                                loss.backward()
+                                optimizer.step()
                                 _, predicted = torch.max(outputs.data, 1)
-                                val_accuracy += (predicted == labels).sum().item()
-                    val_accuracy = 100 * val_accuracy / len(val_loader.dataset)
+                                train_accuracy += (predicted == labels).sum().item()
+                        train_accuracy = 100 * train_accuracy / len(train_loader.dataset)
+                        
+                        #Validation loop
+                        model.eval()
+                        with torch.no_grad():
+                            if SHOW_PROGRESS_BAR:
+                                for batch in tqdm(val_loader, desc="Validating"):
+                                    inputs, labels = batch
+                                    inputs, labels = inputs.to(device), labels.to(device)
+                                    outputs = model(inputs)
+                                    _, predicted = torch.max(outputs.data, 1)
+                                    val_accuracy += (predicted == labels).sum().item()
+                            else:
+                                for batch in val_loader:
+                                    inputs, labels = batch
+                                    inputs, labels = inputs.to(device), labels.to(device)
+                                    outputs = model(inputs)
+                                    _, predicted = torch.max(outputs.data, 1)
+                                    val_accuracy += (predicted == labels).sum().item()
+                        val_accuracy = 100 * val_accuracy / len(val_loader.dataset)
 
-                    # Test loop
-                    with torch.no_grad():
-                        if SHOW_PROGRESS_BAR:
-                            for batch in tqdm(test_loader, desc="Testing"):
-                                inputs, labels = batch
-                                inputs, labels = inputs.to(device), labels.to(device)
-                                outputs = model(inputs)
-                                _, predicted = torch.max(outputs.data, 1)
-                                test_accuracy += (predicted == labels).sum().item()
-                        else:
-                            for batch in test_loader:
-                                inputs, labels = batch
-                                inputs, labels = inputs.to(device), labels.to(device)
-                                outputs = model(inputs)
-                                _, predicted = torch.max(outputs.data, 1)
-                                test_accuracy += (predicted == labels).sum().item()
-                    test_accuracy = 100 * test_accuracy / len(test_loader.dataset)
+                        # Test loop
+                        with torch.no_grad():
+                            if SHOW_PROGRESS_BAR:
+                                for batch in tqdm(test_loader, desc="Testing"):
+                                    inputs, labels = batch
+                                    inputs, labels = inputs.to(device), labels.to(device)
+                                    outputs = model(inputs)
+                                    _, predicted = torch.max(outputs.data, 1)
+                                    test_accuracy += (predicted == labels).sum().item()
+                            else:
+                                for batch in test_loader:
+                                    inputs, labels = batch
+                                    inputs, labels = inputs.to(device), labels.to(device)
+                                    outputs = model(inputs)
+                                    _, predicted = torch.max(outputs.data, 1)
+                                    test_accuracy += (predicted == labels).sum().item()
+                        test_accuracy = 100 * test_accuracy / len(test_loader.dataset)
 
-                    epoch_time = time.perf_counter() - start_time
-                    print(f"Epoch {t} || Train Accuracy: {train_accuracy:.2f}%, Val Accuracy: {val_accuracy:.2f}%, Test Accuracy: {test_accuracy:.2f}%, Time: {epoch_time:.2f}s")
-                    
-                    with open(os.path.join(folder_path, "results.txt"), "a") as f:
-                        f.write(f"{t}\t{train_accuracy:.2f}\t{val_accuracy:.2f}\t{test_accuracy:.2f}\t{epoch_time:.2f}\n")
-                    # Save checkpoint
-                    torch.save({
-                        'epoch': t,
-                        'model_state_dict': model.state_dict(),
-                        'optimizer_state_dict': optimizer.state_dict(),
-                    }, os.path.join(folder_path, "model_checkpoint.pth"))
+                        epoch_time = time.perf_counter() - start_time
+                        print(f"Epoch {t} || Train Accuracy: {train_accuracy:.2f}%, Val Accuracy: {val_accuracy:.2f}%, Test Accuracy: {test_accuracy:.2f}%, Time: {epoch_time:.2f}s")
+                        
+                        with open(os.path.join(folder_path, "results.txt"), "a") as f:
+                            f.write(f"{t}\t{train_accuracy:.2f}\t{val_accuracy:.2f}\t{test_accuracy:.2f}\t{epoch_time:.2f}\n")
+                        # Save checkpoint
+                        torch.save({
+                            'epoch': t,
+                            'model_state_dict': model.state_dict(),
+                            'optimizer_state_dict': optimizer.state_dict(),
+                        }, os.path.join(folder_path, "model_checkpoint.pth"))
+
                 #endregion
                 
